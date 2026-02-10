@@ -6,19 +6,18 @@ import ru.practicum.shareit.user.User;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class UserMapper {
-    public static UserDto toUserDto(User user) {
-        return new UserDto(
+    public static UserDtoResponse toUserDto(User user) {
+        return new UserDtoResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail()
         );
     }
 
-    public static User toUser(UserDto userDto) {
+    public static User toUser(UserDtoRequest userDtoRequest) {
         User user = new User();
-        user.setId(userDto.getId());
-        user.setName(userDto.getName());
-        user.setEmail(userDto.getEmail());
+        user.setName(userDtoRequest.getName());
+        user.setEmail(userDtoRequest.getEmail());
         return user;
     }
 }

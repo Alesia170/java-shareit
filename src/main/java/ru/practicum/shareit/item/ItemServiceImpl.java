@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.ForbiddenException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoRequest;
+import ru.practicum.shareit.item.dto.ItemDtoResponse;
+import ru.practicum.shareit.item.dto.ItemDtoUpdate;
 import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
@@ -20,7 +22,7 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
 
     @Override
-    public List<ItemDto> getAllItemsByUser(Long userId) {
+    public List<ItemDtoResponse> getAllItemsByUser(Long userId) {
         return itemRepository.getAllItems()
                 .stream()
                 .filter(item -> item.getOwner() != null &&
@@ -30,11 +32,11 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto saveNewItem(Long userId, ItemDto itemDto) {
+    public ItemDtoResponse save(Long userId, ItemDtoRequest itemDtoRequest) {
         User owner = userRepository.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
-        Item item = ItemMapper.toItem(itemDto);
+        Item item = ItemMapper.toItem(itemDtoRequest);
         item.setOwner(owner);
         Item savedItem = itemRepository.saveNewItem(item);
 
@@ -42,7 +44,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
+    public ItemDtoResponse updateItem(Long userId, Long itemId, ItemDtoUpdate itemDtoUpdate) {
         User owner = userRepository.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         Item item = itemRepository.getById(itemId)
@@ -52,16 +54,16 @@ public class ItemServiceImpl implements ItemService {
             throw new ForbiddenException("Редактировать вещь может только владелец");
         }
 
-        if (itemDto.getName() != null) {
-            item.setName(itemDto.getName());
+        if (itemDtoUpdate.getName() != null) {
+            item.setName(itemDtoUpdate.getName());
         }
 
-        if (itemDto.getDescription() != null) {
-            item.setDescription(itemDto.getDescription());
+        if (itemDtoUpdate.getDescription() != null) {
+            item.setDescription(itemDtoUpdate.getDescription());
         }
 
-        if (itemDto.getAvailable() != null) {
-            item.setAvailable(itemDto.getAvailable());
+        if (itemDtoUpdate.getAvailable() != null) {
+            item.setAvailable(itemDtoUpdate.getAvailable());
         }
 
         Item updatedItem = itemRepository.saveNewItem(item);
@@ -69,14 +71,14 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto getById(Long itemId) {
+    public ItemDtoResponse getById(Long itemId) {
         Item item = itemRepository.getById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь с id=" + itemId + " не найдена"));
         return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public List<ItemDto> getItemBySearch(String text) {
+    public List<ItemDtoResponse> getItemBySearch(String text) {
         if (text == null || text.isBlank()) {
             return Collections.emptyList();
         }

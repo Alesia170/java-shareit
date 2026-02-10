@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.DuplicatedDataException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.dto.UserDtoRequest;
+import ru.practicum.shareit.user.dto.UserDtoResponse;
+import ru.practicum.shareit.user.dto.UserDtoUpdate;
 import ru.practicum.shareit.user.dto.UserMapper;
 
 import java.util.List;
@@ -16,7 +18,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public List<UserDto> getAllUsers() {
+    public List<UserDtoResponse> getAllUsers() {
         return userRepository.getAllUsers()
                 .stream()
                 .map(UserMapper::toUserDto)
@@ -24,7 +26,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto getById(Long id) {
+    public UserDtoResponse getById(Long id) {
         User user = userRepository.getById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
 
@@ -32,8 +34,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto saveUser(UserDto userDto) {
-        User user = UserMapper.toUser(userDto);
+    public UserDtoResponse saveUser(UserDtoRequest userDtoRequest) {
+        User user = UserMapper.toUser(userDtoRequest);
 
         checkEmail(user);
 
@@ -50,17 +52,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto updateUser(Long id, UserDto userDto) {
+    public UserDtoResponse updateUser(Long id, UserDtoUpdate userDtoUpdate) {
 
         User user = userRepository.getById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
 
-        if (userDto.getName() != null) {
-            user.setName(userDto.getName());
+        if (userDtoUpdate.getName() != null) {
+            user.setName(userDtoUpdate.getName());
         }
 
-        if (userDto.getEmail() != null) {
-            user.setEmail(userDto.getEmail());
+        if (userDtoUpdate.getEmail() != null) {
+            user.setEmail(userDtoUpdate.getEmail());
             checkEmail(user);
         }
 
