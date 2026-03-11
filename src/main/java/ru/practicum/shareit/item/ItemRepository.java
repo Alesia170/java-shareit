@@ -25,12 +25,10 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
                 i.name as name,
                 i.description as description,
                 i.available as available,
-            
                 lb.id as lastBookingId,
                 lb.booker.id as lastBookerId,
                 lb.start as lastStart,
                 lb.end as lastEnd,
-            
                 nb.id as nextBookingId,
                 nb.booker.id as nextBookerId,
                 nb.start as nextStart,
