@@ -32,7 +32,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
         Item item = itemRepository.findById(bookingDtoRequest.getItemId())
-                .orElseThrow(() -> new NotFoundException("Вещь с id=" + bookingDtoRequest.getItemId() + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Вещь с id=" + bookingDtoRequest.getItemId() + " не найдена"));
 
         if (!item.getAvailable()) {
             throw new ValidationException("Вещь недоступна");
@@ -40,6 +40,19 @@ public class BookingServiceImpl implements BookingService {
 
         if (item.getOwner().getId().equals(userId)) {
             throw new ValidationException("Владелец не может бронировать свою вещь");
+        }
+
+        if (!bookingDtoRequest.getEnd().isAfter(bookingDtoRequest.getStart())) {
+            throw new ValidationException("Дата окончания должна быть позже даты начала");
+        }
+
+        if (bookingRepository.existsByItemIdAndStatusAndStartLessThanAndEndGreaterThan(
+                item.getId(),
+                Status.APPROVED,
+                bookingDtoRequest.getEnd(),
+                bookingDtoRequest.getStart()
+        )) {
+            throw new ValidationException("Бронирование пересекается с существующим");
         }
 
         Booking booking = BookingMapper.toBooking(bookingDtoRequest);
@@ -61,6 +74,8 @@ public class BookingServiceImpl implements BookingService {
             throw new ForbiddenException("Подтверждение или отклонение доступно только владельцу вещи");
         }
 
+        checkUserExists(userId);
+
         if (booking.getStatus() != Status.WAITING) {
             throw new ValidationException("Статус бронирования уже изменен");
         }
@@ -72,6 +87,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingDtoResponse getBookingById(Long userId, Long bookingId) {
+        checkUserExists(userId);
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));
 
@@ -83,17 +99,17 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingDtoResponse> getUserBookings(Long userId, String state) {
+    public List<BookingDtoResponse> getUserBookings(Long userId, BookingState state) {
         checkUserExists(userId);
 
-        return getBookings(userId, BookingState.from(state), false);
+        return getBookings(userId, state, false);
     }
 
     @Override
-    public List<BookingDtoResponse> getOwnerBookings(Long userId, String state) {
+    public List<BookingDtoResponse> getOwnerBookings(Long userId, BookingState state) {
         checkUserExists(userId);
 
-        return getBookings(userId, BookingState.from(state), true);
+        return getBookings(userId, state, true);
     }
 
     private void checkUserExists(Long userId) {

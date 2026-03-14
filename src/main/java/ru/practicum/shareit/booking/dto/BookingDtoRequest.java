@@ -1,5 +1,6 @@
 package ru.practicum.shareit.booking.dto;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,9 +14,11 @@ import java.time.LocalDateTime;
 public class BookingDtoRequest {
 
     @NotNull
+    @Future
     private LocalDateTime start;
 
     @NotNull
+    @Future
     private LocalDateTime end;
 
     @NotNull
