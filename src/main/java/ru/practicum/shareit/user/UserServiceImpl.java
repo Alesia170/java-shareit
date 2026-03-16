@@ -19,7 +19,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDtoResponse> getAllUsers() {
-        return userRepository.getAllUsers()
+        return userRepository.findAll()
                 .stream()
                 .map(UserMapper::toUserDto)
                 .toList();
@@ -27,7 +27,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDtoResponse getById(Long id) {
-        User user = userRepository.getById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
 
         return UserMapper.toUserDto(user);
@@ -39,22 +39,22 @@ public class UserServiceImpl implements UserService {
 
         checkEmail(user);
 
-        User savedUser = userRepository.saveUser(user);
+        User savedUser = userRepository.save(user);
 
         return UserMapper.toUserDto(savedUser);
     }
 
     @Override
     public void deleteUser(Long id) {
-        userRepository.getById(id)
+        userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
-        userRepository.deleteUser(id);
+        userRepository.deleteById(id);
     }
 
     @Override
     public UserDtoResponse updateUser(Long id, UserDtoUpdate userDtoUpdate) {
 
-        User user = userRepository.getById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
 
         if (userDtoUpdate.getName() != null) {
@@ -66,13 +66,13 @@ public class UserServiceImpl implements UserService {
             checkEmail(user);
         }
 
-        User savedUser = userRepository.saveUser(user);
+        User savedUser = userRepository.save(user);
 
         return UserMapper.toUserDto(savedUser);
     }
 
     private void checkEmail(User user) {
-        boolean emailExists = userRepository.getAllUsers()
+        boolean emailExists = userRepository.findAll()
                 .stream()
                 .anyMatch(existingUser -> existingUser.getEmail().equals(user.getEmail())
                         && !Objects.equals(existingUser.getId(), user.getId()));
