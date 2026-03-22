@@ -462,4 +462,599 @@ class BookingServiceImplTest {
 
         assertThat(result, empty());
     }
+
+    @Test
+    void shouldThrowWhenBookingEndIsNotAfterStart() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-date@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-date@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoRequest request = new BookingDtoRequest();
+        request.setItemId(item.getId());
+        request.setStart(LocalDateTime.now().plusDays(2));
+        request.setEnd(LocalDateTime.now().plusDays(1));
+
+        assertThrows(ValidationException.class, () -> bookingService.saveNewBooking(booker.getId(), request));
+    }
+
+    @Test
+    void shouldThrowWhenBookingIntersectsWithApprovedBooking() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-intersection@email.com");
+        em.persist(owner);
+
+        User firstBooker = new User();
+        firstBooker.setName("First");
+        firstBooker.setEmail("first-intersection@email.com");
+        em.persist(firstBooker);
+
+        User secondBooker = new User();
+        secondBooker.setName("Second");
+        secondBooker.setEmail("second-intersection@email.com");
+        em.persist(secondBooker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking existingBooking = new Booking();
+        existingBooking.setItem(item);
+        existingBooking.setBooker(firstBooker);
+        existingBooking.setStart(LocalDateTime.now().plusDays(5));
+        existingBooking.setEnd(LocalDateTime.now().plusDays(10));
+        existingBooking.setStatus(Status.APPROVED);
+        em.persist(existingBooking);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoRequest request = new BookingDtoRequest();
+        request.setItemId(item.getId());
+        request.setStart(LocalDateTime.now().plusDays(7));
+        request.setEnd(LocalDateTime.now().plusDays(9));
+
+        assertThrows(ValidationException.class, () -> bookingService.saveNewBooking(secondBooker.getId(), request));
+    }
+
+    @Test
+    void shouldThrowWhenApprovingUnknownBooking() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-approve-unknown@email.com");
+        em.persist(owner);
+
+        em.flush();
+        em.clear();
+
+        assertThrows(NotFoundException.class, () -> bookingService.approveBooking(owner.getId(), 9999L, true));
+    }
+
+    @Test
+    void shouldThrowWhenApprovingBookingWithNonWaitingStatus() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-approve-status@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-approve-status@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(Status.APPROVED);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        assertThrows(ValidationException.class,
+                () -> bookingService.approveBooking(owner.getId(), booking.getId(), true));
+    }
+
+    @Test
+    void shouldReturnBookingByIdForOwner() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-get-booking@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-get-booking@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(Status.WAITING);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoResponse response = bookingService.getBookingById(owner.getId(), booking.getId());
+
+        assertThat(response.getId(), equalTo(booking.getId()));
+        assertThat(response.getItem().getId(), equalTo(item.getId()));
+        assertThat(response.getBooker().getId(), equalTo(booker.getId()));
+    }
+
+    @Test
+    void shouldReturnBookingByIdForBooker() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-get-booking-booker@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-get-booking-booker@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(Status.WAITING);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoResponse response = bookingService.getBookingById(booker.getId(), booking.getId());
+
+        assertThat(response.getId(), equalTo(booking.getId()));
+        assertThat(response.getBooker().getId(), equalTo(booker.getId()));
+    }
+
+    @Test
+    void shouldThrowWhenGettingBookingByIdForUnauthorizedUser() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-get-booking-denied@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-get-booking-denied@email.com");
+        em.persist(booker);
+
+        User stranger = new User();
+        stranger.setName("Stranger");
+        stranger.setEmail("stranger-get-booking@email.com");
+        em.persist(stranger);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(Status.WAITING);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        assertThrows(NotFoundException.class, () -> bookingService.getBookingById(stranger.getId(), booking.getId()));
+    }
+
+    @Test
+    void shouldThrowWhenGettingBookingByIdForUnknownUser() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-get-booking-unknown-user@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-get-booking-unknown-user@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(Status.WAITING);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        assertThrows(NotFoundException.class, () -> bookingService.getBookingById(9999L, booking.getId()));
+    }
+
+    @Test
+    void shouldThrowWhenGettingUnknownBookingById() {
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user-get-booking-unknown@email.com");
+        em.persist(user);
+
+        em.flush();
+        em.clear();
+
+        assertThrows(NotFoundException.class, () -> bookingService.getBookingById(user.getId(), 9999L));
+    }
+
+    @Test
+    void shouldReturnFutureUserBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-future@email.com");
+        em.persist(owner);
+
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user-future@email.com");
+        em.persist(user);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking futureBooking = new Booking();
+        futureBooking.setItem(item);
+        futureBooking.setBooker(user);
+        futureBooking.setStart(LocalDateTime.now().plusDays(3));
+        futureBooking.setEnd(LocalDateTime.now().plusDays(4));
+        futureBooking.setStatus(Status.WAITING);
+        em.persist(futureBooking);
+
+        Booking pastBooking = new Booking();
+        pastBooking.setItem(item);
+        pastBooking.setBooker(user);
+        pastBooking.setStart(LocalDateTime.now().minusDays(4));
+        pastBooking.setEnd(LocalDateTime.now().minusDays(3));
+        pastBooking.setStatus(Status.APPROVED);
+        em.persist(pastBooking);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getUserBookings(user.getId(), BookingState.FUTURE);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), equalTo(futureBooking.getId()));
+    }
+
+    @Test
+    void shouldReturnPastUserBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-past@email.com");
+        em.persist(owner);
+
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user-past@email.com");
+        em.persist(user);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking pastBooking = new Booking();
+        pastBooking.setItem(item);
+        pastBooking.setBooker(user);
+        pastBooking.setStart(LocalDateTime.now().minusDays(4));
+        pastBooking.setEnd(LocalDateTime.now().minusDays(3));
+        pastBooking.setStatus(Status.APPROVED);
+        em.persist(pastBooking);
+
+        Booking futureBooking = new Booking();
+        futureBooking.setItem(item);
+        futureBooking.setBooker(user);
+        futureBooking.setStart(LocalDateTime.now().plusDays(3));
+        futureBooking.setEnd(LocalDateTime.now().plusDays(4));
+        futureBooking.setStatus(Status.WAITING);
+        em.persist(futureBooking);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getUserBookings(user.getId(), BookingState.PAST);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), equalTo(pastBooking.getId()));
+    }
+
+    @Test
+    void shouldReturnCurrentUserBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-current@email.com");
+        em.persist(owner);
+
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user-current@email.com");
+        em.persist(user);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking currentBooking = new Booking();
+        currentBooking.setItem(item);
+        currentBooking.setBooker(user);
+        currentBooking.setStart(LocalDateTime.now().minusHours(1));
+        currentBooking.setEnd(LocalDateTime.now().plusHours(1));
+        currentBooking.setStatus(Status.APPROVED);
+        em.persist(currentBooking);
+
+        Booking futureBooking = new Booking();
+        futureBooking.setItem(item);
+        futureBooking.setBooker(user);
+        futureBooking.setStart(LocalDateTime.now().plusDays(1));
+        futureBooking.setEnd(LocalDateTime.now().plusDays(2));
+        futureBooking.setStatus(Status.WAITING);
+        em.persist(futureBooking);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getUserBookings(user.getId(), BookingState.CURRENT);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), equalTo(currentBooking.getId()));
+    }
+
+    @Test
+    void shouldReturnWaitingUserBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-waiting@email.com");
+        em.persist(owner);
+
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user-waiting@email.com");
+        em.persist(user);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking waitingBooking = new Booking();
+        waitingBooking.setItem(item);
+        waitingBooking.setBooker(user);
+        waitingBooking.setStart(LocalDateTime.now().plusDays(1));
+        waitingBooking.setEnd(LocalDateTime.now().plusDays(2));
+        waitingBooking.setStatus(Status.WAITING);
+        em.persist(waitingBooking);
+
+        Booking rejectedBooking = new Booking();
+        rejectedBooking.setItem(item);
+        rejectedBooking.setBooker(user);
+        rejectedBooking.setStart(LocalDateTime.now().plusDays(3));
+        rejectedBooking.setEnd(LocalDateTime.now().plusDays(4));
+        rejectedBooking.setStatus(Status.REJECTED);
+        em.persist(rejectedBooking);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getUserBookings(user.getId(), BookingState.WAITING);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), equalTo(waitingBooking.getId()));
+    }
+
+    @Test
+    void shouldReturnRejectedUserBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-rejected@email.com");
+        em.persist(owner);
+
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user-rejected@email.com");
+        em.persist(user);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking rejectedBooking = new Booking();
+        rejectedBooking.setItem(item);
+        rejectedBooking.setBooker(user);
+        rejectedBooking.setStart(LocalDateTime.now().plusDays(1));
+        rejectedBooking.setEnd(LocalDateTime.now().plusDays(2));
+        rejectedBooking.setStatus(Status.REJECTED);
+        em.persist(rejectedBooking);
+
+        Booking waitingBooking = new Booking();
+        waitingBooking.setItem(item);
+        waitingBooking.setBooker(user);
+        waitingBooking.setStart(LocalDateTime.now().plusDays(3));
+        waitingBooking.setEnd(LocalDateTime.now().plusDays(4));
+        waitingBooking.setStatus(Status.WAITING);
+        em.persist(waitingBooking);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getUserBookings(user.getId(), BookingState.REJECTED);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), equalTo(rejectedBooking.getId()));
+    }
+
+    @Test
+    void shouldThrowWhenGettingUserBookingsForUnknownUser() {
+        assertThrows(NotFoundException.class, () -> bookingService.getUserBookings(9999L, BookingState.ALL));
+    }
+
+    @Test
+    void shouldReturnWaitingOwnerBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-owner-waiting@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-owner-waiting@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking waitingBooking = new Booking();
+        waitingBooking.setItem(item);
+        waitingBooking.setBooker(booker);
+        waitingBooking.setStart(LocalDateTime.now().plusDays(1));
+        waitingBooking.setEnd(LocalDateTime.now().plusDays(2));
+        waitingBooking.setStatus(Status.WAITING);
+        em.persist(waitingBooking);
+
+        Booking rejectedBooking = new Booking();
+        rejectedBooking.setItem(item);
+        rejectedBooking.setBooker(booker);
+        rejectedBooking.setStart(LocalDateTime.now().plusDays(3));
+        rejectedBooking.setEnd(LocalDateTime.now().plusDays(4));
+        rejectedBooking.setStatus(Status.REJECTED);
+        em.persist(rejectedBooking);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getOwnerBookings(owner.getId(), BookingState.WAITING);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), equalTo(waitingBooking.getId()));
+    }
+
+    @Test
+    void shouldReturnRejectedOwnerBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-owner-rejected@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-owner-rejected@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking rejectedBooking = new Booking();
+        rejectedBooking.setItem(item);
+        rejectedBooking.setBooker(booker);
+        rejectedBooking.setStart(LocalDateTime.now().plusDays(1));
+        rejectedBooking.setEnd(LocalDateTime.now().plusDays(2));
+        rejectedBooking.setStatus(Status.REJECTED);
+        em.persist(rejectedBooking);
+
+        Booking waitingBooking = new Booking();
+        waitingBooking.setItem(item);
+        waitingBooking.setBooker(booker);
+        waitingBooking.setStart(LocalDateTime.now().plusDays(3));
+        waitingBooking.setEnd(LocalDateTime.now().plusDays(4));
+        waitingBooking.setStatus(Status.WAITING);
+        em.persist(waitingBooking);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getOwnerBookings(owner.getId(), BookingState.REJECTED);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getId(), equalTo(rejectedBooking.getId()));
+    }
+
+    @Test
+    void shouldThrowWhenGettingOwnerBookingsForUnknownUser() {
+        assertThrows(NotFoundException.class, () -> bookingService.getOwnerBookings(9999L, BookingState.ALL));
+    }
 }
