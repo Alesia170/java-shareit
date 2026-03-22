@@ -160,4 +160,174 @@ public class ItemServiceImplTest {
 
         assertThrows(ValidationException.class, () -> itemService.addComment(booker.getId(), item.getId(), request));
     }
+
+    @Test
+    void shouldReturnEmptyItemsWhenUserHasNoItems() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-empty@email.com");
+        em.persist(owner);
+
+        em.flush();
+        em.clear();
+
+        List<ItemBookingDto> result = itemService.getAllItemsByUser(owner.getId());
+
+        assertThat(result, empty());
+    }
+
+    @Test
+    void shouldThrowWhenAddingCommentForUnknownUser() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner2@email.com");
+        em.persist(owner);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        em.flush();
+        em.clear();
+
+        CommentRequestDto request = new CommentRequestDto();
+        request.setText("Very good item");
+
+        assertThrows(RuntimeException.class,
+                () -> itemService.addComment(9999L, item.getId(), request));
+    }
+
+    @Test
+    void shouldThrowWhenAddingCommentForUnknownItem() {
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user@email.com");
+        em.persist(user);
+
+        em.flush();
+        em.clear();
+
+        CommentRequestDto request = new CommentRequestDto();
+        request.setText("Very good item");
+
+        assertThrows(RuntimeException.class,
+                () -> itemService.addComment(user.getId(), 9999L, request));
+    }
+
+    @Test
+    void shouldThrowWhenBookingNotApproved() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner3@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker3@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().minusDays(2));
+        booking.setEnd(LocalDateTime.now().minusDays(1));
+        booking.setStatus(Status.WAITING);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        CommentRequestDto request = new CommentRequestDto();
+        request.setText("Very good item");
+
+        assertThrows(ValidationException.class,
+                () -> itemService.addComment(booker.getId(), item.getId(), request));
+    }
+
+    @Test
+    void shouldThrowWhenBookingNotFinishedYet() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner4@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker4@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().minusHours(2));
+        booking.setEnd(LocalDateTime.now().plusHours(2));
+        booking.setStatus(Status.APPROVED);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        CommentRequestDto request = new CommentRequestDto();
+        request.setText("Very good item");
+
+        assertThrows(ValidationException.class,
+                () -> itemService.addComment(booker.getId(), item.getId(), request));
+    }
+
+    @Test
+    void shouldSaveCommentWithCorrectAuthorAndItem() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner5@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker5@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().minusDays(3));
+        booking.setEnd(LocalDateTime.now().minusDays(2));
+        booking.setStatus(Status.APPROVED);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        CommentRequestDto request = new CommentRequestDto();
+        request.setText("Excellent");
+
+        CommentResponseDto response = itemService.addComment(booker.getId(), item.getId(), request);
+
+        assertThat(response.getAuthorName(), equalTo("Booker"));
+        assertThat(response.getText(), equalTo("Excellent"));
+        assertThat(response.getCreated(), notNullValue());
+    }
 }

@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
     public UserDtoResponse saveUser(UserDtoRequest userDtoRequest) {
         User user = UserMapper.toUser(userDtoRequest);
 
-        checkEmail(user);
+        checkEmail(user.getEmail(), null);
 
         User savedUser = userRepository.save(user);
 
@@ -62,8 +62,8 @@ public class UserServiceImpl implements UserService {
         }
 
         if (userDtoUpdate.getEmail() != null) {
+            checkEmail(userDtoUpdate.getEmail(), user.getId());
             user.setEmail(userDtoUpdate.getEmail());
-            checkEmail(user);
         }
 
         User savedUser = userRepository.save(user);
@@ -71,11 +71,11 @@ public class UserServiceImpl implements UserService {
         return UserMapper.toUserDto(savedUser);
     }
 
-    private void checkEmail(User user) {
+    private void checkEmail(String email, Long userId) {
         boolean emailExists = userRepository.findAll()
                 .stream()
-                .anyMatch(existingUser -> existingUser.getEmail().equals(user.getEmail())
-                        && !Objects.equals(existingUser.getId(), user.getId()));
+                .anyMatch(existingUser -> Objects.equals(existingUser.getEmail(), email)
+                                          && !Objects.equals(existingUser.getId(), userId));
         if (emailExists) {
             throw new DuplicatedDataException("Эта электронная почта уже используется");
         }

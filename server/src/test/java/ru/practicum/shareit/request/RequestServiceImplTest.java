@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.request.dto.ItemRequestRequestDto;
 import ru.practicum.shareit.request.dto.ItemRequestResponseDto;
 import ru.practicum.shareit.user.User;
@@ -17,6 +18,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @Transactional
@@ -172,5 +174,59 @@ class RequestServiceImplTest {
         assertThat(response, notNullValue());
         assertThat(response.getId(), equalTo(request.getId()));
         assertThat(response.getDescription(), equalTo(request.getDescription()));
+    }
+
+    @Test
+    void shouldThrowWhenSaveRequestForUnknownUser() {
+        ItemRequestRequestDto requestDto = new ItemRequestRequestDto();
+        requestDto.setDescription("Need a drill");
+
+        assertThrows(NotFoundException.class,
+                () -> itemRequestService.saveNewRequest(999L, requestDto));
+    }
+
+    @Test
+    void shouldReturnEmptyOwnRequests() {
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user@email.com");
+        em.persist(user);
+        em.flush();
+        em.clear();
+
+        List<ItemRequestResponseDto> result = itemRequestService.getOwnRequests(user.getId());
+
+        assertThat(result, empty());
+    }
+
+    @Test
+    void shouldReturnEmptyRequestsFromOtherUsers() {
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user@email.com");
+        em.persist(user);
+        em.flush();
+        em.clear();
+
+        List<ItemRequestResponseDto> result = itemRequestService.getRequestsCreatedByOtherUsers(user.getId());
+
+        assertThat(result, empty());
+    }
+
+    @Test
+    void shouldThrowWhenRequestByIdNotFound() {
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user@email.com");
+        em.persist(user);
+        em.flush();
+        em.clear();
+
+        assertThrows(NotFoundException.class, () -> itemRequestService.getRequestById(user.getId(), 999L));
+    }
+
+    @Test
+    void shouldThrowWhenGetOwnRequestsForUnknownUser() {
+        assertThrows(NotFoundException.class, () -> itemRequestService.getOwnRequests(999L));
     }
 }

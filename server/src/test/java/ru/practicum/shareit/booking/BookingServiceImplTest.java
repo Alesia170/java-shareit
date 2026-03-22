@@ -9,6 +9,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingDtoRequest;
 import ru.practicum.shareit.booking.dto.BookingDtoResponse;
+import ru.practicum.shareit.exception.ForbiddenException;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
 
@@ -18,6 +21,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @Transactional
@@ -250,5 +254,212 @@ class BookingServiceImplTest {
                 hasProperty("id", equalTo(booking1.getId())),
                 hasProperty("status", equalTo(Status.WAITING))
         )));
+    }
+
+    @Test
+    void shouldThrowWhenBookerNotFound() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-notfound@email.com");
+        em.persist(owner);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoRequest request = new BookingDtoRequest();
+        request.setItemId(item.getId());
+        request.setStart(LocalDateTime.now().plusDays(1));
+        request.setEnd(LocalDateTime.now().plusDays(2));
+
+        assertThrows(NotFoundException.class, () -> bookingService.saveNewBooking(9999L, request));
+    }
+
+    @Test
+    void shouldThrowWhenItemNotFound() {
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-notfound@email.com");
+        em.persist(booker);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoRequest request = new BookingDtoRequest();
+        request.setItemId(9999L);
+        request.setStart(LocalDateTime.now().plusDays(1));
+        request.setEnd(LocalDateTime.now().plusDays(2));
+
+        assertThrows(NotFoundException.class, () -> bookingService.saveNewBooking(booker.getId(), request));
+    }
+
+    @Test
+    void shouldThrowWhenItemIsNotAvailable() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-unavailable@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-unavailable@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(false);
+        item.setOwner(owner);
+        em.persist(item);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoRequest request = new BookingDtoRequest();
+        request.setItemId(item.getId());
+        request.setStart(LocalDateTime.now().plusDays(1));
+        request.setEnd(LocalDateTime.now().plusDays(2));
+
+        assertThrows(ValidationException.class, () -> bookingService.saveNewBooking(booker.getId(), request));
+    }
+
+    @Test
+    void shouldThrowWhenOwnerBooksOwnItem() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-self@email.com");
+        em.persist(owner);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoRequest request = new BookingDtoRequest();
+        request.setItemId(item.getId());
+        request.setStart(LocalDateTime.now().plusDays(1));
+        request.setEnd(LocalDateTime.now().plusDays(2));
+
+        assertThrows(ValidationException.class, () -> bookingService.saveNewBooking(owner.getId(), request));
+    }
+
+    @Test
+    void shouldThrowWhenApproveByNotOwner() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-approve@email.com");
+        em.persist(owner);
+
+        User otherUser = new User();
+        otherUser.setName("Other");
+        otherUser.setEmail("other-approve@email.com");
+        em.persist(otherUser);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-approve@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(Status.WAITING);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        assertThrows(ForbiddenException.class, () -> bookingService.approveBooking(otherUser.getId(), booking.getId(), true));
+    }
+
+    @Test
+    void shouldRejectBooking() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-reject@email.com");
+        em.persist(owner);
+
+        User booker = new User();
+        booker.setName("Booker");
+        booker.setEmail("booker-reject@email.com");
+        em.persist(booker);
+
+        Item item = new Item();
+        item.setName("Drill");
+        item.setDescription("Power drill");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        em.persist(item);
+
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(Status.WAITING);
+        em.persist(booking);
+
+        em.flush();
+        em.clear();
+
+        BookingDtoResponse response = bookingService.approveBooking(owner.getId(), booking.getId(), false);
+
+        em.flush();
+        em.clear();
+
+        Booking updatedBooking = em.find(Booking.class, booking.getId());
+
+        assertThat(response.getStatus(), equalTo(Status.REJECTED));
+        assertThat(updatedBooking.getStatus(), equalTo(Status.REJECTED));
+    }
+
+    @Test
+    void shouldReturnEmptyUserBookings() {
+        User user = new User();
+        user.setName("User");
+        user.setEmail("user-empty-bookings@email.com");
+        em.persist(user);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getUserBookings(user.getId(), BookingState.ALL);
+
+        assertThat(result, empty());
+    }
+
+    @Test
+    void shouldReturnEmptyOwnerBookings() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner-empty-bookings@email.com");
+        em.persist(owner);
+
+        em.flush();
+        em.clear();
+
+        List<BookingDtoResponse> result = bookingService.getOwnerBookings(owner.getId(), BookingState.ALL);
+
+        assertThat(result, empty());
     }
 }
