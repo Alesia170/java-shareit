@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface ItemRequestService {
 
-    ItemRequestResponseDto saveNewRequest (Long userId, ItemRequestRequestDto itemRequestRequestDto);
+    ItemRequestResponseDto saveNewRequest(Long userId, ItemRequestRequestDto itemRequestRequestDto);
 
     List<ItemRequestResponseDto> getOwnRequests(Long userId);
 

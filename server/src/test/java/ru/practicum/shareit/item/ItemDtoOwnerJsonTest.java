@@ -82,34 +82,32 @@ class ItemDtoOwnerJsonTest {
 
     @Test
     void shouldDeserializeItemDtoResponse() throws Exception {
-        String content = """
-                {
-                  "id": 1,
-                  "name": "Дрель",
-                  "description": "Мощная дрель",
-                  "available": true,
-                  "lastBooking": {
-                    "id": 10,
-                    "bookerId": 5,
-                    "start": "2026-03-20T10:00:00",
-                    "end": "2026-03-21T10:00:00"
-                  },
-                  "nextBooking": {
-                    "id": 11,
-                    "bookerId": 6,
-                    "start": "2026-03-25T10:00:00",
-                    "end": "2026-03-26T10:00:00"
-                  },
-                  "comments": [
-                    {
-                      "id": 100,
-                      "text": "Отличная вещь",
-                      "authorName": "Алеся",
-                      "created": "2026-03-22T12:30:00"
-                    }
-                  ]
-                }
-                """;
+        String content = "{\n"
+                         + "  \"id\": 1,\n"
+                         + "  \"name\": \"Дрель\",\n"
+                         + "  \"description\": \"Мощная дрель\",\n"
+                         + "  \"available\": true,\n"
+                         + "  \"lastBooking\": {\n"
+                         + "    \"id\": 10,\n"
+                         + "    \"bookerId\": 5,\n"
+                         + "    \"start\": \"2026-03-20T10:00:00\",\n"
+                         + "    \"end\": \"2026-03-21T10:00:00\"\n"
+                         + "  },\n"
+                         + "  \"nextBooking\": {\n"
+                         + "    \"id\": 11,\n"
+                         + "    \"bookerId\": 6,\n"
+                         + "    \"start\": \"2026-03-25T10:00:00\",\n"
+                         + "    \"end\": \"2026-03-26T10:00:00\"\n"
+                         + "  },\n"
+                         + "  \"comments\": [\n"
+                         + "    {\n"
+                         + "      \"id\": 100,\n"
+                         + "      \"text\": \"Отличная вещь\",\n"
+                         + "      \"authorName\": \"Алеся\",\n"
+                         + "      \"created\": \"2026-03-22T12:30:00\"\n"
+                         + "    }\n"
+                         + "  ]\n"
+                         + "}";
 
         ItemOwnerDto dto = json.parseObject(content);
 
