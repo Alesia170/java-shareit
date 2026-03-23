@@ -1,8 +1,6 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
@@ -170,13 +168,17 @@ public class ItemServiceImpl implements ItemService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        Pageable pageable = PageRequest.of(0, 1);
-        List<Booking> bookings = bookingRepository.findBookingForComment(
-                itemId, userId, Status.APPROVED, pageable
+        boolean hasCompletedBooking = bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+                itemId,
+                userId,
+                Status.APPROVED,
+                now
         );
 
-        if (bookings.isEmpty()) {
-            throw new ValidationException("Оставлять комментарий может только пользователь, завершивший аренду вещи");
+        if (!hasCompletedBooking) {
+            throw new ValidationException(
+                    "Оставлять комментарий может только пользователь, завершивший аренду вещи"
+            );
         }
 
         Comment comment = new Comment();
@@ -187,8 +189,12 @@ public class ItemServiceImpl implements ItemService {
 
         Comment savedComment = commentRepository.save(comment);
 
-        return new CommentResponseDto(savedComment.getId(), savedComment.getText(),
-                savedComment.getAuthor().getName(), savedComment.getCreated());
+        return new CommentResponseDto(
+                savedComment.getId(),
+                savedComment.getText(),
+                savedComment.getAuthor().getName(),
+                savedComment.getCreated()
+        );
     }
 
     private void checkUserExists(Long userId) {

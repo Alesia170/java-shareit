@@ -1,6 +1,5 @@
 package ru.practicum.shareit.booking;
 
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -61,19 +60,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             Long itemId, Status status, LocalDateTime now
     );
 
-    @Query("""
-            select b
-            from Booking b
-            where b.item.id = :itemId
-              and b.booker.id = :userId
-              and b.status = :status
-              and b.end < CURRENT_TIMESTAMP
-            order by b.end desc
-            """)
-    List<Booking> findBookingForComment(@Param("itemId") Long itemId,
-                                        @Param("userId") Long userId,
-                                        @Param("status") Status status,
-                                        Pageable pageable);
+    boolean existsByItemIdAndBookerIdAndStatusAndEndBefore(
+            Long itemId,
+            Long bookerId,
+            Status status,
+            LocalDateTime now
+    );
 
     boolean existsByItemIdAndStatusAndStartLessThanAndEndGreaterThan(Long itemId, Status status,
                                                                      LocalDateTime end, LocalDateTime start);
