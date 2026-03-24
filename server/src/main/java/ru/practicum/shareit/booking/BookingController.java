@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingDtoRequest;
 import ru.practicum.shareit.booking.dto.BookingDtoResponse;
-import ru.practicum.shareit.exception.ValidationException;
 
 import java.util.List;
 
@@ -38,17 +37,13 @@ public class BookingController {
 
     @GetMapping
     public List<BookingDtoResponse> getUserBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                                    @RequestParam(defaultValue = "ALL") String state) {
-        BookingState bookingState = BookingState.from(state)
-                .orElseThrow(() -> new ValidationException("Unknown state: " + state));
-        return bookingService.getUserBookings(userId, bookingState);
+                                                    @RequestParam(defaultValue = "ALL") BookingState state) {
+        return bookingService.getUserBookings(userId, state);
     }
 
     @GetMapping("/owner")
     public List<BookingDtoResponse> getOwnerBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                                     @RequestParam(defaultValue = "ALL") String state) {
-        BookingState bookingState = BookingState.from(state)
-                .orElseThrow(() -> new ValidationException("Unknown state: " + state));
-        return bookingService.getOwnerBookings(userId, bookingState);
+                                                     @RequestParam(defaultValue = "ALL") BookingState state) {
+        return bookingService.getOwnerBookings(userId, state);
     }
 }
