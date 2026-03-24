@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.request.dto.ItemRequestRequestDto;
-import ru.practicum.shareit.request.dto.ItemRequestResponseDto;
+import ru.practicum.shareit.request.dto.RequestDto;
+import ru.practicum.shareit.request.dto.RequestResponseDto;
 import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class RequestServiceImplTest {
 
     private final EntityManager em;
-    private final ItemRequestService itemRequestService;
+    private final RequestService requestService;
 
     @Test
     void shouldSaveNewRequest() {
@@ -36,19 +36,19 @@ class RequestServiceImplTest {
         em.persist(user);
         em.flush();
 
-        ItemRequestRequestDto requestDto = new ItemRequestRequestDto();
+        RequestDto requestDto = new RequestDto();
         requestDto.setDescription("Need a drill");
 
-        ItemRequestResponseDto response = itemRequestService.saveNewRequest(user.getId(), requestDto);
+        RequestResponseDto response = requestService.saveNewRequest(user.getId(), requestDto);
 
         em.flush();
         em.clear();
 
-        TypedQuery<ItemRequest> query = em.createQuery(
-                "select r from ItemRequest r where r.requestor.id = :userId and r.description = :description",
-                ItemRequest.class);
+        TypedQuery<Request> query = em.createQuery(
+                "select r from Request r where r.requestor.id = :userId and r.description = :description",
+                Request.class);
 
-        ItemRequest savedRequest = query
+        Request savedRequest = query
                 .setParameter("userId", user.getId())
                 .setParameter("description", requestDto.getDescription())
                 .getSingleResult();
@@ -74,19 +74,19 @@ class RequestServiceImplTest {
         user2.setEmail("user2@email.com");
         em.persist(user2);
 
-        ItemRequest request1 = new ItemRequest();
+        Request request1 = new Request();
         request1.setDescription("Need a drill");
         request1.setRequestor(user1);
         request1.setCreated(LocalDateTime.now().minusHours(3));
         em.persist(request1);
 
-        ItemRequest request2 = new ItemRequest();
+        Request request2 = new Request();
         request2.setDescription("Need a ladder");
         request2.setRequestor(user1);
         request2.setCreated(LocalDateTime.now().minusHours(2));
         em.persist(request2);
 
-        ItemRequest request3 = new ItemRequest();
+        Request request3 = new Request();
         request3.setDescription("Need a saw");
         request3.setRequestor(user2);
         request3.setCreated(LocalDateTime.now().minusHours(1));
@@ -95,7 +95,7 @@ class RequestServiceImplTest {
         em.flush();
         em.clear();
 
-        List<ItemRequestResponseDto> result = itemRequestService.getOwnRequests(user1.getId());
+        List<RequestResponseDto> result = requestService.getOwnRequests(user1.getId());
 
         assertThat(result, hasSize(2));
         assertThat(result, hasItem(allOf(
@@ -124,19 +124,19 @@ class RequestServiceImplTest {
         user3.setEmail("user3@email.com");
         em.persist(user3);
 
-        ItemRequest request1 = new ItemRequest();
+        Request request1 = new Request();
         request1.setDescription("Need a drill");
         request1.setRequestor(user1);
         request1.setCreated(LocalDateTime.now().minusHours(3));
         em.persist(request1);
 
-        ItemRequest request2 = new ItemRequest();
+        Request request2 = new Request();
         request2.setDescription("Need a ladder");
         request2.setRequestor(user2);
         request2.setCreated(LocalDateTime.now().minusHours(2));
         em.persist(request2);
 
-        ItemRequest request3 = new ItemRequest();
+        Request request3 = new Request();
         request3.setDescription("Need a saw");
         request3.setRequestor(user3);
         request3.setCreated(LocalDateTime.now().minusHours(1));
@@ -145,7 +145,7 @@ class RequestServiceImplTest {
         em.flush();
         em.clear();
 
-        List<ItemRequestResponseDto> result = itemRequestService.getRequestsCreatedByOtherUsers(user1.getId());
+        List<RequestResponseDto> result = requestService.getRequestsCreatedByOtherUsers(user1.getId());
 
         assertThat(result, hasSize(2));
         assertThat(result, hasItem(hasProperty("id", equalTo(request2.getId()))));
@@ -160,7 +160,7 @@ class RequestServiceImplTest {
         user.setEmail("user@email.com");
         em.persist(user);
 
-        ItemRequest request = new ItemRequest();
+        Request request = new Request();
         request.setDescription("Need a drill");
         request.setRequestor(user);
         request.setCreated(LocalDateTime.now().minusHours(1));
@@ -169,7 +169,7 @@ class RequestServiceImplTest {
         em.flush();
         em.clear();
 
-        ItemRequestResponseDto response = itemRequestService.getRequestById(user.getId(), request.getId());
+        RequestResponseDto response = requestService.getRequestById(user.getId(), request.getId());
 
         assertThat(response, notNullValue());
         assertThat(response.getId(), equalTo(request.getId()));
@@ -178,11 +178,11 @@ class RequestServiceImplTest {
 
     @Test
     void shouldThrowWhenSaveRequestForUnknownUser() {
-        ItemRequestRequestDto requestDto = new ItemRequestRequestDto();
+        RequestDto requestDto = new RequestDto();
         requestDto.setDescription("Need a drill");
 
         assertThrows(NotFoundException.class,
-                () -> itemRequestService.saveNewRequest(999L, requestDto));
+                () -> requestService.saveNewRequest(999L, requestDto));
     }
 
     @Test
@@ -194,7 +194,7 @@ class RequestServiceImplTest {
         em.flush();
         em.clear();
 
-        List<ItemRequestResponseDto> result = itemRequestService.getOwnRequests(user.getId());
+        List<RequestResponseDto> result = requestService.getOwnRequests(user.getId());
 
         assertThat(result, empty());
     }
@@ -208,7 +208,7 @@ class RequestServiceImplTest {
         em.flush();
         em.clear();
 
-        List<ItemRequestResponseDto> result = itemRequestService.getRequestsCreatedByOtherUsers(user.getId());
+        List<RequestResponseDto> result = requestService.getRequestsCreatedByOtherUsers(user.getId());
 
         assertThat(result, empty());
     }
@@ -222,11 +222,11 @@ class RequestServiceImplTest {
         em.flush();
         em.clear();
 
-        assertThrows(NotFoundException.class, () -> itemRequestService.getRequestById(user.getId(), 999L));
+        assertThrows(NotFoundException.class, () -> requestService.getRequestById(user.getId(), 999L));
     }
 
     @Test
     void shouldThrowWhenGetOwnRequestsForUnknownUser() {
-        assertThrows(NotFoundException.class, () -> itemRequestService.getOwnRequests(999L));
+        assertThrows(NotFoundException.class, () -> requestService.getOwnRequests(999L));
     }
 }

@@ -13,8 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.request.dto.ItemRequestRequestDto;
-import ru.practicum.shareit.request.dto.ItemRequestResponseDto;
+import ru.practicum.shareit.request.dto.RequestDto;
+import ru.practicum.shareit.request.dto.RequestResponseDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,10 +34,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class RequestControllerTest {
 
     @Mock
-    private ItemRequestService itemRequestService;
+    private RequestService requestService;
 
     @InjectMocks
-    private ItemRequestController itemRequestController;
+    private RequestController requestController;
 
     private final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -45,18 +45,18 @@ public class RequestControllerTest {
 
     private MockMvc mvc;
 
-    private ItemRequestRequestDto requestDto;
-    private ItemRequestResponseDto responseDto;
+    private RequestDto requestDto;
+    private RequestResponseDto responseDto;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders
-                .standaloneSetup(itemRequestController)
+                .standaloneSetup(requestController)
                 .build();
 
-        requestDto = new ItemRequestRequestDto("Нужна дрель");
+        requestDto = new RequestDto("Нужна дрель");
 
-        responseDto = new ItemRequestResponseDto();
+        responseDto = new RequestResponseDto();
         responseDto.setId(1L);
         responseDto.setDescription("Нужна дрель");
         responseDto.setCreated(LocalDateTime.of(2030, 1, 10, 12, 0));
@@ -65,7 +65,7 @@ public class RequestControllerTest {
 
     @Test
     void shouldSaveNewRequest() throws Exception {
-        when(itemRequestService.saveNewRequest(eq(1L), any(ItemRequestRequestDto.class)))
+        when(requestService.saveNewRequest(eq(1L), any(RequestDto.class)))
                 .thenReturn(responseDto);
 
         mvc.perform(post("/requests")
@@ -77,12 +77,12 @@ public class RequestControllerTest {
                 .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.description", is("Нужна дрель")));
 
-        verify(itemRequestService).saveNewRequest(eq(1L), any(ItemRequestRequestDto.class));
+        verify(requestService).saveNewRequest(eq(1L), any(RequestDto.class));
     }
 
     @Test
     void shouldGetOwnRequests() throws Exception {
-        when(itemRequestService.getOwnRequests(1L))
+        when(requestService.getOwnRequests(1L))
                 .thenReturn(List.of(responseDto));
 
         mvc.perform(get("/requests")
@@ -93,12 +93,12 @@ public class RequestControllerTest {
                 .andExpect(jsonPath("$[0].id", is(1)))
                 .andExpect(jsonPath("$[0].description", is("Нужна дрель")));
 
-        verify(itemRequestService).getOwnRequests(1L);
+        verify(requestService).getOwnRequests(1L);
     }
 
     @Test
     void shouldGetRequestsCreatedByOtherUsers() throws Exception {
-        when(itemRequestService.getRequestsCreatedByOtherUsers(1L))
+        when(requestService.getRequestsCreatedByOtherUsers(1L))
                 .thenReturn(List.of(responseDto));
 
         mvc.perform(get("/requests/all")
@@ -109,12 +109,12 @@ public class RequestControllerTest {
                 .andExpect(jsonPath("$[0].id", is(1)))
                 .andExpect(jsonPath("$[0].description", is("Нужна дрель")));
 
-        verify(itemRequestService).getRequestsCreatedByOtherUsers(1L);
+        verify(requestService).getRequestsCreatedByOtherUsers(1L);
     }
 
     @Test
     void shouldGetRequestById() throws Exception {
-        when(itemRequestService.getRequestById(1L, 1L))
+        when(requestService.getRequestById(1L, 1L))
                 .thenReturn(responseDto);
 
         mvc.perform(get("/requests/1")
@@ -124,12 +124,12 @@ public class RequestControllerTest {
                 .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.description", is("Нужна дрель")));
 
-        verify(itemRequestService).getRequestById(1L, 1L);
+        verify(requestService).getRequestById(1L, 1L);
     }
 
     @Test
     void shouldReturnNotFoundWhenRequestDoesNotExist() throws Exception {
-        when(itemRequestService.getRequestById(1L, 999L))
+        when(requestService.getRequestById(1L, 999L))
                 .thenThrow(new NotFoundException("Запрос с id=999 не найден"));
 
         mvc.perform(get("/requests/999")
@@ -137,18 +137,6 @@ public class RequestControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
-        verify(itemRequestService).getRequestById(1L, 999L);
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenDescriptionIsBlank() throws Exception {
-        ItemRequestRequestDto invalidDto = new ItemRequestRequestDto("");
-
-        mvc.perform(post("/requests")
-                        .header("X-Sharer-User-Id", 1L)
-                        .content(mapper.writeValueAsString(invalidDto))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
+        verify(requestService).getRequestById(1L, 999L);
     }
 }

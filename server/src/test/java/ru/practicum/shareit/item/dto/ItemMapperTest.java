@@ -2,7 +2,7 @@ package ru.practicum.shareit.item.dto;
 
 import org.junit.jupiter.api.Test;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.ItemRequest;
+import ru.practicum.shareit.request.Request;
 import ru.practicum.shareit.request.dto.ItemShortDto;
 import ru.practicum.shareit.user.User;
 
@@ -15,7 +15,7 @@ class ItemMapperTest {
         User owner = new User();
         owner.setId(1L);
 
-        ItemRequest request = new ItemRequest();
+        Request request = new Request();
         request.setId(10L);
 
         Item item = new Item();

@@ -4,21 +4,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
-import ru.practicum.shareit.request.dto.ItemRequestResponseDto;
+import ru.practicum.shareit.request.dto.RequestResponseDto;
 
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest
-class ItemRequestResponseDtoJsonTest {
+class RequestResponseDtoJsonTest {
 
     @Autowired
-    private JacksonTester<ItemRequestResponseDto> json;
+    private JacksonTester<RequestResponseDto> json;
 
     @Test
     void shouldSerializeCreatedFieldWithExpectedFormat() throws Exception {
-        ItemRequestResponseDto dto = new ItemRequestResponseDto();
+        RequestResponseDto dto = new RequestResponseDto();
         dto.setId(10L);
         dto.setDescription("Нужна дрель");
         dto.setCreated(LocalDateTime.of(2026, 3, 22, 9, 15, 0));

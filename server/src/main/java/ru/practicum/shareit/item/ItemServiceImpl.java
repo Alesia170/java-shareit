@@ -14,8 +14,8 @@ import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.comment.*;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.ItemRequest;
-import ru.practicum.shareit.request.ItemRequestRepository;
+import ru.practicum.shareit.request.Request;
+import ru.practicum.shareit.request.RequestRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
@@ -30,7 +30,7 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
-    private final ItemRequestRepository itemRequestRepository;
+    private final RequestRepository requestRepository;
 
     @Override
     public List<ItemBookingDto> getAllItemsByUser(Long userId) {
@@ -69,9 +69,9 @@ public class ItemServiceImpl implements ItemService {
         Item item = ItemMapper.toItem(itemDtoRequest);
         item.setOwner(owner);
         if (itemDtoRequest.getRequestId() != null) {
-            ItemRequest itemRequest = itemRequestRepository.findById(itemDtoRequest.getRequestId())
+            Request request = requestRepository.findById(itemDtoRequest.getRequestId())
                     .orElseThrow(() -> new NotFoundException("Запрос не найден"));
-            item.setRequest(itemRequest);
+            item.setRequest(request);
         }
         Item savedItem = itemRepository.save(item);
 

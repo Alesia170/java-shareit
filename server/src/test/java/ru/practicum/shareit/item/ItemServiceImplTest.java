@@ -17,7 +17,7 @@ import ru.practicum.shareit.item.comment.CommentRequestDto;
 import ru.practicum.shareit.item.comment.CommentResponseDto;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.ItemRequest;
+import ru.practicum.shareit.request.Request;
 import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
@@ -365,7 +365,7 @@ public class ItemServiceImplTest {
         owner.setEmail("owner-save-request@email.com");
         em.persist(owner);
 
-        ItemRequest itemRequest = new ItemRequest();
+        Request itemRequest = new Request();
         itemRequest.setDescription("Need a drill");
         itemRequest.setRequestor(owner);
         itemRequest.setCreated(LocalDateTime.now());

@@ -5,9 +5,9 @@ import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.dto.ItemMapper;
-import ru.practicum.shareit.request.dto.ItemRequestMapper;
-import ru.practicum.shareit.request.dto.ItemRequestRequestDto;
-import ru.practicum.shareit.request.dto.ItemRequestResponseDto;
+import ru.practicum.shareit.request.dto.RequestMapper;
+import ru.practicum.shareit.request.dto.RequestDto;
+import ru.practicum.shareit.request.dto.RequestResponseDto;
 import ru.practicum.shareit.request.dto.ItemShortDto;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
@@ -17,46 +17,46 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ItemRequestServiceImpl implements ItemRequestService {
+public class RequestServiceImpl implements RequestService {
 
-    private final ItemRequestRepository itemRequestRepository;
+    private final RequestRepository requestRepository;
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
 
-    public ItemRequestResponseDto saveNewRequest(Long userId, ItemRequestRequestDto itemRequestRequestDto) {
+    public RequestResponseDto saveNewRequest(Long userId, RequestDto requestDto) {
         User requestor = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
-        ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestRequestDto);
+        Request request = RequestMapper.toItemRequest(requestDto);
 
-        itemRequest.setRequestor(requestor);
-        itemRequest.setCreated(LocalDateTime.now());
-        ItemRequest savedItemRequest = itemRequestRepository.save(itemRequest);
+        request.setRequestor(requestor);
+        request.setCreated(LocalDateTime.now());
+        Request savedRequest = requestRepository.save(request);
 
-        return ItemRequestMapper.toResponseDto(savedItemRequest, List.of());
+        return RequestMapper.toResponseDto(savedRequest, List.of());
     }
 
-    public List<ItemRequestResponseDto> getOwnRequests(Long userId) {
+    public List<RequestResponseDto> getOwnRequests(Long userId) {
         checkUserExists(userId);
 
-        return itemRequestRepository.findByRequestorIdOrderByCreatedDesc(userId)
+        return requestRepository.findByRequestorIdOrderByCreatedDesc(userId)
                 .stream()
-                .map(itemRequest -> ItemRequestMapper.toResponseDto(itemRequest, List.of()))
+                .map(itemRequest -> RequestMapper.toResponseDto(itemRequest, List.of()))
                 .toList();
     }
 
-    public List<ItemRequestResponseDto> getRequestsCreatedByOtherUsers(Long userId) {
+    public List<RequestResponseDto> getRequestsCreatedByOtherUsers(Long userId) {
         checkUserExists(userId);
 
-        return itemRequestRepository.findByRequestorIdNotOrderByCreatedDesc(userId)
+        return requestRepository.findByRequestorIdNotOrderByCreatedDesc(userId)
                 .stream()
-                .map(itemRequest -> ItemRequestMapper.toResponseDto(itemRequest, List.of()))
+                .map(itemRequest -> RequestMapper.toResponseDto(itemRequest, List.of()))
                 .toList();
     }
 
-    public ItemRequestResponseDto getRequestById(Long userId, Long requestId) {
+    public RequestResponseDto getRequestById(Long userId, Long requestId) {
         checkUserExists(userId);
-        ItemRequest itemRequest = itemRequestRepository.findById(requestId)
+        Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Запрос с id=" + requestId + " не найден"));
 
         List<ItemShortDto> items = itemRepository.findByRequestId(requestId)
@@ -64,7 +64,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                 .map(ItemMapper::toShortDto)
                 .toList();
 
-        return ItemRequestMapper.toResponseDto(itemRequest, items);
+        return RequestMapper.toResponseDto(request, items);
     }
 
     private void checkUserExists(Long userId) {
