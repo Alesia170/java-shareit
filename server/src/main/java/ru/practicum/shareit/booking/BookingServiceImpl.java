@@ -28,6 +28,15 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingDtoResponse saveNewBooking(Long userId, BookingDtoRequest bookingDtoRequest) {
+
+        if (bookingDtoRequest.getItemId() == null) {
+            throw new ValidationException("Не указан itemId");
+        }
+
+        if (bookingDtoRequest.getStart() == null || bookingDtoRequest.getEnd() == null) {
+            throw new ValidationException("Дата начала и окончания обязательны");
+        }
+
         User booker = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
